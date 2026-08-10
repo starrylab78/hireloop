@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+// In local dev, '/api' is proxied to localhost:5000 by Vite (see vite.config.ts).
+// In production, frontend and backend are usually on different hosts (e.g.
+// Vercel + Render), so VITE_API_URL must point at the deployed backend —
+// set it in your hosting provider's environment variables at build time.
+const baseURL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
+
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL,
   withCredentials: true,
 });
 
@@ -39,8 +45,6 @@ api.interceptors.response.use(
       } catch {
         queue = [];
         window.dispatchEvent(new CustomEvent('hireloop:session-expired'));
-        // Surface the ORIGINAL request's error, not the refresh attempt's —
-        // the original is what the user actually tried to do.
         return Promise.reject(error);
       } finally {
         isRefreshing = false;
@@ -50,7 +54,6 @@ api.interceptors.response.use(
   }
 );
 
-/** Generates a per-action idempotency key for payment-related POSTs. */
 export function newIdempotencyKey() {
   return crypto.randomUUID();
 }

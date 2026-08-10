@@ -28,19 +28,19 @@ export const ACCESS_COOKIE = 'hl_access';
 export const REFRESH_COOKIE = 'hl_refresh';
 
 export function cookieOptions(maxAgeMs) {
+  const isProd = process.env.NODE_ENV === 'production';
+  const domain = process.env.COOKIE_DOMAIN;
+  const hasSharedParentDomain = isProd && domain && domain !== 'localhost';
+
   const opts = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProd, // must be true whenever sameSite is 'none' — browsers reject 'none' cookies over plain http
+    sameSite: !isProd ? 'lax' : hasSharedParentDomain ? 'lax' : 'none',
     maxAge: maxAgeMs,
     path: '/',
   };
-  // Only set an explicit cookie Domain in production, and only if it's been
-  // configured to something real. Setting `Domain=localhost` in dev is
-  // inconsistent across browsers and can silently cause cookies to be
-  // dropped/rejected, which looks like a random logout on navigation.
-  const domain = process.env.COOKIE_DOMAIN;
-  if (process.env.NODE_ENV === 'production' && domain && domain !== 'localhost') {
+
+  if (hasSharedParentDomain) {
     opts.domain = domain;
   }
   return opts;
